@@ -67,16 +67,6 @@ layers:
          '${ feature.source_layer }':
            - ne_110m_lakes
            - ne_110m_ocean
-      attributes:
-        - key: class
-          value: >
-            ${
-              ["ne_10m_ocean","ne_50m_ocean","ne_110m_ocean"].contains(feature.source_layer)
-              ? "ocean"
-              : ["ne_10m_lakes","ne_50m_lakes","ne_110m_lakes"].contains(feature.source_layer)
-              ? "lake"
-              : null
-             }
   - id: ne_lz_hillshade
     features:
       - source: hillshade_json
