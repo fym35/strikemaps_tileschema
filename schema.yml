@@ -1,0 +1,357 @@
+schema_name: StrikeMaps Tileschema
+schema_description: A tileschema for OpenStreetMap data developed by the Strike Maps project.
+attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>, Natural Earth, NASA SRTM
+args:
+  area:
+    description: Geofabrik area to download
+    default: monaco
+  osm_url:
+    description: OSM URL to download
+    default: '${ args.area == "planet" ? "aws:latest" : ("geofabrik:" + args.area) }'
+sources:
+  ocean:
+    type: shapefile
+    url: https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip
+  osm:
+    type: osm
+    url: '${ args.osm_url }'
+  natural_earth:
+    type: geopackage
+    url: "https://naciscdn.org/naturalearth/packages/natural_earth_vector.gpkg.zip"
+    projection: EPSG:4326
+  contour:
+    type: geojson
+    local_path: ./data/contours.geojson
+  hillshade_json:
+    type: geojson
+    url: "https://raw.githubusercontent.com/tinius/hillshade-json/refs/heads/master/hillshade.json"
+layers:
+  - id: ne_water_bodies
+    features:
+    - source: natural_earth
+      include_when:
+       '${ feature.source_layer }':
+         - ne_10m_ocean
+         - ne_10m_lakes
+         - ne_50m_ocean
+         - ne_50m_lakes
+         - ne_110m_ocean
+         - ne_110m_lakes
+      min_zoom:
+       5:
+         '${ feature.source_layer }':
+           - ne_10m_ocean
+       4:
+         '${ feature.source_layer }':
+           - ne_10m_lakes
+       2:
+         '${ feature.source_layer }':
+           - ne_50m_ocean
+           - ne_50m_lakes
+       0:
+         '${ feature.source_layer }':
+           - ne_110m_ocean
+           - ne_110m_lakes
+      max_zoom:
+        5:
+          '${ feature.source_layer }':
+            - ne_10m_ocean
+            - ne_10m_lakes
+        4:
+         '${ feature.source_layer }':
+           - ne_50m_ocean
+        3:
+         '${ feature.source_layer }':
+           - ne_50m_lakes
+        1:
+         '${ feature.source_layer }':
+           - ne_110m_lakes
+           - ne_110m_ocean
+      attributes:
+        - key: class
+          value: >
+            ${
+              ["ne_10m_ocean","ne_50m_ocean","ne_110m_ocean"].contains(feature.source_layer)
+              ? "ocean"
+              : ["ne_10m_lakes","ne_50m_lakes","ne_110m_lakes"].contains(feature.source_layer)
+              ? "lake"
+              : null
+             }
+  - id: ne_lz_hillshade
+    features:
+      - source: hillshade_json
+        geometry: polygon
+        min_zoom: 0
+        max_zoom: 5
+        attributes:
+        - key: shade
+          value: ${ feature.id }
+  - id: aeroway
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          aeroway: [aerodrome, heliport, helipad]
+        attributes:
+        - key: class
+          type: match_value
+        - key: name
+          type: get
+  - id: contour
+    features:
+    - source: contour
+      geometry: line
+      attributes:
+        - key: ele
+          type: get
+  - id: boundary
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          boundary: [aboriginal_lands, administrative, border_zone, census, forest, forest_compartment, hazard, health, historic, limited_traffic_zone, local_authority, low_emission_zone, maritime, national_park, political, postal_code, religious_administration]
+        attributes:
+          - key: class
+            type: match_value
+          - key: admin_level
+            type: get
+          - key: border_type
+            type: get
+          - key: name
+            type: get
+  - id: barrier
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          barrier: [cable_barrier, city_wall, ditch, fence, guard_rail, handrail, hedge, kerb, retaining_wall, wall, chain, jersey_barrier]
+          historic: [citywalls]
+        attributes:
+          - key: class
+            type: match_value
+  - id: building
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          building: __any__
+          man_made: [bridge, wasterwater_plant, water_works, works]
+        attributes:
+          - key: class
+            type: match_value
+          - key: name
+            type: get
+          - key: osm_id
+            tag_value: $id
+          - key: architecture
+            type: get
+          - key: colour
+            type: get
+          - key: flats
+            type: get
+          - key: levels
+            type: get
+          - key: material
+            type: get
+          - key: height
+            type: get
+          - key: housenumber
+            tag_value: addr:housenumber
+          - key: housename
+            tag_value: addr:housename
+  - id: ocean
+    features:
+      - source: ocean
+        geometry: polygon
+  - id: water
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          natural: [bay, coastline, reef, water, wetland]
+          water: [river, oxbow, canal, ditch, lock, fish_pass, lake, reservoir, pond, basin, lagoon, stream_pool, reflecting_pool, moat, wastewater]
+          waterway: [riverbank, dock]
+          leisure: [padding_pool, swimming_area, swimming_pool]
+        attributes:
+          - key: class
+            type: match_key
+          - key: subclass
+            type: match_value
+          - key: name
+            type: get
+  - id: waterworks
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          man_made: [breakwater]
+  - id: waterway
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          waterway: [river, stream, tidal_channel, canal, drain, ditch, pressurised, fairway]
+  - id: place
+    features:
+      - source: osm
+        geometry: point
+        include_when:
+          place: __any__
+        attributes:
+          - key: class
+            type: match_value
+          - key: name
+            type: get
+          - key: rank
+            type: get
+  - id: landarea
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          landuse: [commercial, construction, education, fairground, industrial, residential, retail, institutional, aquaculture, alloments, farmland, farmyard, animal_keeping, flowerbed, forest, logging, greenhouse_horticulture, meadow, orchard, plant_nursery, vineyard, depot, garages, highway, port, railway, basin, salt_pond, bronwfield, cemetery, grass, greenfield, landfill, military, quarry, recreation_ground, religious, village_green, greenery, winter_sports] 
+          amenity: [college, dancing_school, driving_school, first_aid_school, kindergarten, language_school, library, surf_school, toy_library, research_insitute, training, music_school, school, traffic_park, university, parking, parking_space, clinic, dentist, doctors, hospital, nursing_home, pharmacy, social_facility, veterinary, gambling, courthouse, fire_station, police, prison, townhall, crematorium, dive_centre, funeral_hall, grave_yard, marketplace, monastery, mortuary]
+          waterway: [boatyard]
+          military: [danger_area]
+          landcover: __any__
+          leisure: [garden, park, pitch, dog_park, fishing, marina, nature_reserve, playground, stadium, track, playground, sports_centre]
+          natural: [fell, grassland, heath, scrub, wood, tundra, bay, beach, blowhole, crevasse, shingle, shoal, bare_rock, hill, sand, scree, tree]
+          highway: [service, pedestrian]
+          man_made: [pier]
+        attributes:
+          - key: class
+            type: match_key
+          - key: subclass
+            type: match_value
+          - key: name
+            type: get
+          - key: area
+            type: get
+          - key: tree_type
+            type: get
+  - id: transportation
+    features:
+      - source: osm
+        geometry: line 
+        include_when:
+          route: __any__
+          highway: [motorway, trunk, primary, secondary, tertiary, unclassified,residential, motorway_link, trunk_link, primary_link, secondary_link, tertiary_link, living_street, service, pedestrian, track, bus_guideway, escape, raceway, road, busway, footway, bridleway, steps, corridor, path, via_ferrata, cicleway, ladder, platform]
+          aerialway: [gondola, mixed_lift, chair_lift, drag_lift, t-bar, j-bar, platter, rope_tow, magic_carpet, zip_line, goods]
+          footway: [sidewalk, crossing, traffic_island]
+          cycleway: [lane, track, share_busway, shared_lane]
+          aeroway: [runway, stopway, taxiway]
+          railway: [abandoned, construction, disused, funicular, light_rail, miniature, monorail, narrow_gauge, rail, subway, tram]
+          man_made: [goods_conveyor]
+        attributes:
+        - key: class
+          type: match_key
+        - key: subclass
+          value: '${ match_value.replace("_link", "") }'
+        - key: link
+          min_zoom: 11
+          value: true
+          include_when:
+            highway:
+              - motorway_link
+              - trunk_link
+              - primary_link
+              - secondary_link
+              - tertiary_link
+          else: false
+        - key: name
+          type: get 
+        - key: oneway
+          type: get
+        - key: junction
+          type: get
+        - key: mtb_scale
+          tag_value: mtb:scale
+        - key: mtb_description
+          tag_value: mtb:description
+        - key: ref
+          type: get
+        - key: colour
+          type: get
+        - key: network
+          type: get
+        - key: state
+          type: get
+        - key: osmc_symbol
+          tag_value: osmc:symbol
+        - key: tunnel
+          type: get
+        - key: bridge
+          type: get
+  - id: landfeature
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          natural: [tree_row, arete, cliff, ridge]
+          man_made: [cutline, clearcut, embankment]
+          geological: [fault, fold, inselberg]
+        attributes:
+          - key: class
+            type: match_key
+          - key: subclass
+            type: match_value
+  - id: poi
+    features:
+      - source: osm
+        geometry: point
+        min_zoom: 5
+        include_when:
+          aeroway: [holding_position, arresting_gear, gate, beacon, windsock, tower, aircraft_crossing, parking_position]
+          leisure: [amusement_arcade, bandstand, dance, disc_golf_course, escape_game, firepit, fitness_centre, fitness_station, hackerspace, horse_riding, ice_rink, miniature_golf, picnic_table, slipway]
+          barrier: [block, bollard, border_control, bump_gate, bus_trap, cattle_grid, cycle_barrier, debris, full-height_turnstile, gate, height_restrictor, sally_port, spikes, stile, swing_gate, toll_booth, turnstile]
+          emergency: [defibrillator, fire_alarm_box, fire_extinguisher, fire_hose, fire_hydrant, water_tank, suction_point, lifeguard, life_ring, assembly_point, phone, drinking_water]
+          railway: [switch, tram_level_crossing, water_crane, level_crossing, railway_crossing]
+          amenity: [bar, biergarten, cafe, fast_food, food_court, ice_cream, pub, restaurant, parking_space, bicycle_parking, bicycle_repair_station, bicycle_rental, bicycle_wash, atm, payment_terminal, bench, bbq, shelter, toilets, drinking_water, waste_basket, recycling, vending_machine]
+          shop: __any__
+          tourism: __any__
+          historic: __any__
+          man_made: [beacon, chimney, crane, cross, flagpole, lighthouse, mast, monitoring_station, observatory, telescope, tower, windmill]
+          military: [checkpoint]
+          natural: [cave_entrance, peak, rock, saddle, volcano, stone, tree]
+          highway: [bus_stop, crossing, cyclist_waiting_aid, elevator, emergency_access_point, give_way, phone, hitchhiking, ladder, milestone, mini_roundabout, stop, street_lamp, traffic_signals]
+          waterway: [waterfall, lock_gate]
+          attraction: [historic, kiddie_ride]
+        attributes:
+          - key: class
+            type: match_key
+          - key: subclass
+            type: match_value
+          - key: name
+            type: get
+          - key: ele
+            type: get
+          - key: artwork_type
+            type: get
+      - source: osm
+        geometry: polygon_point_on_surface
+        include_when:
+          leisure: [park, garden, playground, dog_park, sports_centre, stadium, marina, nature_reserve, beach_resort, water_park]
+          amenity: [school, university, hospital, clinic, library, police, fire_station, townhall, courthouse, marketplace, place_of_worship, grave_yard, crematorium]
+          landuse: [cemetery]
+          tourism: [museum, zoo, theme_park, attraction]
+          building: __any__
+        attributes:
+          - key: class
+            type: match_key
+          - key: subclass
+            type: match_value
+          - key: name
+            type: get
+          - key: ele
+            type: get
+          - key: housenumber
+            type: get
+  - id: misc
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          attracion: [slide, water_slide, lazy_river]
+          man_made: [pipeline]
+          leisure: [track]          
+
