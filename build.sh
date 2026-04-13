@@ -29,7 +29,7 @@ mkdir -p work
 wget -O "work/$POLY_FILE" "https://download.geofabrik.de/${REGION_ROOT}${REGION}.poly"
 
 rm -f data/contours.osm
-pyhgtmap --polygon="work/$POLY_FILE" --step=10 --hgtdir=work/hgt --sources=view1,view3 --simplifyContoursEpsilon=0.00001 -j16 --max-nodes-per-tile=0 --output-prefix data/contours
+pyhgtmap --polygon="work/$POLY_FILE" --step=40 --hgtdir=work/hgt --sources=view1,view3 --simplifyContoursEpsilon=0.001 -j16 --max-nodes-per-tile=0 --output-prefix data/contours
 
 osmium export data/contours.osm -o data/contours.geojson --overwrite
 rm -f data/contours.osm
