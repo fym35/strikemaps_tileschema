@@ -34,8 +34,6 @@ generate_region() {
   # max-nodes-per-tile=0 SHOULD generate only one file
   mv "work/contours/$REGION_ROOT/$REGION"/con* work/contours.osm
 
-  rm -rf "work/contours/$REGION_ROOT/"
-
   rm -f data/contours.geojson
 
   osmium export work/contours.osm \
