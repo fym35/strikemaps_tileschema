@@ -91,9 +91,12 @@ REGION="$2"
 MEMORY="$3"
 
 #Generate
-if [[ "$REGION_ROOT" == "each" ]]; then
+if [ "$REGION_ROOT" == "each" ]; then
+    if [ "$REGION" != "each" ]; then
+        echo "Cannot generate 'each' root region for non-each region, exiting..."
+        exit 1
+    fi
     while IFS= read -r REGION_ROOT; do
-        # Straight up just ignore REGION here
         generate_root "$REGION_ROOT" "each" "$MEMORY"
     done < "defs/regions/planet.txt"
 else
