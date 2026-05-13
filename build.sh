@@ -130,7 +130,7 @@ single_planet() {
 
       mkdir -p "./work/contours/$REG"
       pyhgtmap \
-        --polygon="./work/poly/$PATH_ARG.poly" \
+        --polygon="./work/poly/$REG.poly" \
         --step=100 \
         --hgtdir=work/hgt \
         --sources=view1,view3 \
