@@ -1,73 +1,228 @@
 #!/usr/bin/env bash
 
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <region_root> <region> <memory>"
+# Set defaults
+MEMORY="${MEMORY:-$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / 1024 / 1024 / 2))M}"
+
+# Fetch args
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -m|--memory)
+            MEMORY="$2"
+            shift 2
+            ;;
+        -m=*|--memory=*)
+            MEMORY="${1#*=}"
+            shift
+            ;;
+        -d|--max-depth)
+            MAX_DEPTH="$2"
+            shift 2
+            ;;
+        -d=*|--max-depth=*)
+            MAX_DEPTH="${1#*=}"
+            shift
+            ;;
+        -e|--exclude)
+            EXCLUDE="$2"
+            shift 2
+            ;;
+        -e=*|--exclude=*)
+            EXCLUDE="${1#*=}"
+            shift
+            ;;
+        -t|--test)
+            TEST=1
+            shift
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+        *)
+            if [[ -z "$PATH_ARG" ]]; then
+                PATH_ARG="$1"
+            elif [[ -z "$MODE" ]]; then
+                MODE="$1"
+            else
+                echo "Unexpected argument: $1"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate args
+if [[ -z "$PATH_ARG" || -z "$MODE" ]]; then
+    cat <<EOF
+
+Usage:
+  $(basename "$0") <path> <mode> [options]
+
+Modes:
+  single       Process path as single region
+  recursive    Process all sub-regions under path recursively
+
+Options:
+  -m, --memory <size>
+      RAM allocation given to Planetiler
+      Default: system RAM / 2
+
+  -d, --max-depth <n>
+      Maximum recursion depth (only recursive mode)
+
+  -e, --exclude <regions>
+      Semicolon-separated list of full region paths to exclude from processing
+
+  -t, --test
+      Dry run mode. Prints all regions that would be processed without generating any output.
+
+EOF
     exit 1
 fi
 
-#Define functions
+case "$MODE" in
+    single|recursive)
+        ;;
+    *)
+        echo "Error: invalid mode '$MODE'"
+        echo "Valid modes are: single, subreg, recursive"
+        exit 1
+        ;;
+esac
+
+if [[ -n "$MAX_DEPTH" ]]; then
+    if ! [[ "$MAX_DEPTH" =~ ^[0-9]+$ ]]; then
+        echo "Error: --max-depth must be a non-negative integer"
+        exit 1
+    fi
+fi
+
+if [[ -n "$MAX_DEPTH" && "$MODE" != "recursive" ]]; then
+    echo "Warning: --max-depth can only work with recursive, ignoring..."
+fi
+
+echo "Processing path '$PATH_ARG' in $MODE mode with $MEMORY memory allocated..."
+
+# Define functions
+should_skip() {
+  local path="$1"
+
+  [[ -z "$EXCLUDE" ]] && return 1
+
+  IFS=';' read -ra EXCL <<< "$EXCLUDE"
+  for ex in "${EXCL[@]}"; do
+    [[ "$path" == *"$ex"* ]] && return 0
+  done
+
+  return 1
+}
+
 generate_region() {
-  local REGION="$1"
-  local REGION_ROOT="$2"
-  local MEMORY="${3:-8g}"
+  local PATH_ARG="$1"
+  local MEMORY="$2"
 
-  local POLY_FILE="${REGION}.poly"
+  PATH_ARG="${PATH_ARG%/}"
 
-  mkdir -p work
-  wget -O "work/$POLY_FILE" \
-    "https://download.geofabrik.de/${REGION_ROOT}/${REGION}.poly"
+  if should_skip "$PATH_ARG"; then
+    echo "Skipping excluded region: $PATH_ARG"
+    return 0
+  fi
 
-  mkdir -p "work/contours/$REGION_ROOT/$REGION"
+  echo "Generating region: $PATH_ARG"
 
+  if [[ "$TEST" == "1" ]]; then
+     return 0
+  fi
+
+  mkdir -p "./work/poly/${PATH_ARG%/*}"
+  wget "https://download.geofabrik.de/$PATH_ARG.poly" -O "./work/poly/$PATH_ARG.poly"
+
+  mkdir -p "./work/contours/${PATH_ARG%/*}"
   pyhgtmap \
-    --polygon="work/$POLY_FILE" \
-    --step=75 \
+    --polygon="./work/poly/$PATH_ARG.poly" \
+    --step=100 \
     --hgtdir=work/hgt \
     --sources=view1,view3 \
     --simplifyContoursEpsilon=0.001 \
     -j16 \
     --max-nodes-per-tile=0 \
-    --output-prefix="work/contours/$REGION_ROOT/$REGION/con"
+    --output-prefix="./work/contours/$PATH_ARG/con"
 
-  rm -f work/contours.osm
-
+  mkdir -p "./work/tmp"
   # max-nodes-per-tile=0 SHOULD generate only one file
-  mv "work/contours/$REGION_ROOT/$REGION"/con* work/contours.osm
+  # still very much wonky though
+  mv "work/contours/$PATH_ARG"/con* work/tmp/contours.osm
 
-  rm -f data/contours.geojson
-
-  osmium export work/contours.osm \
-    -o data/contours.geojson \
+  mkdir -p "./data/contours/${PATH_ARG%/*}"
+  osmium export work/tmp/contours.osm \
+    -o data/contours/${PATH_ARG}.geojson \
     --overwrite
 
-  rm -f work/contours.osm
+  rm -f work/tmp/contours.osm
 
-  mkdir -p "./out/$REGION_ROOT"
+  mkdir -p "./out/${PATH_ARG%/*}"
+
+  mkdir -p "./data/osm/${PATH_ARG%/*}"
+  wget "https://download.geofabrik.de/${PATH_ARG%/*}/$(
+        curl -s "https://download.geofabrik.de/${PATH_ARG%/*}/" |
+        grep -oP 'href="\K[^"]+' |
+        grep -vE '^\?C=|/icons/|Parent Directory|^/?$' |
+        sed 's|/$||' |
+        grep '\.osm\.pbf$' |
+        grep -v '\.md5$' |
+        grep "${PATH_ARG##*/}" |
+        sort |
+        tail -n 1
+    )" -O "./data/osm/${PATH_ARG}.osm.pbf"
 
   java -Xmx"$MEMORY" \
     -jar ./bin/planetiler.jar schema.yml \
     --download \
-    --area="${REGION}" \
-    --output="./out/${REGION_ROOT}/${REGION}.mbtiles" \
+    --osm_file="./data/osm/${PATH_ARG}.osm.pbf" \
+    --contour_file="./data/contours/${PATH_ARG}.geojson" \
+    --output="./out/${PATH_ARG}.mbtiles" \
     --no-simplify \
     --simplify-tolerance-at-max-zoom=0 \
     --no-feature-merge \
     --simplify-tolerance=0
 }
 
-generate_root() {
-    local REGION_ROOT="$1"
-    local REGION="$2"
-    if [[ "$REGION" == "each" ]]; then
-        while IFS= read -r REGION; do
-            generate_region "$REGION" "$REGION_ROOT" "$MEMORY"
-        done < "defs/regions/roots/${REGION_ROOT}.txt"
+fetch_path() {
+    local PATH_ARG="$1"
+    curl -s "https://download.geofabrik.de/$PATH_ARG/" |
+    grep -oP 'href="\K[^"]+' |
+    grep -vE '^\?C=|/icons/|Parent Directory|^/?$' |
+    sed 's|/$||' |
+    grep ".poly" |
+    sed 's/\.poly$//'
+}
+
+all_path() {
+    local PATH_ARG="$1"
+    if [ "$PATH_ARG" = "planet" ]; then
+        PATH_ARG=""
+        SUBS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nsouth-america'
     else
-        generate_region "$REGION" "$REGION_ROOT" "$MEMORY"
+        SUBS=$(fetch_path "$PATH_ARG")
+    fi
+
+    if [ -z "$SUBS" ]; then
+        while IFS= read -r REG; do
+            generate_region "$PATH_ARG" "$MEMORY"
+        done <<< "$SUBS"
+    else
+        while IFS= read -r REG; do
+            if [[ -n "$PATH_ARG" ]]; then
+                all_path "$PATH_ARG/$REG"
+            else
+                all_path "$REG"
+            fi
+        done <<< "$SUBS"
     fi
 }
 
-#Prepare environment
+# Prepare environment
 if [ ! -f ./bin/planetiler.jar ]; then
     mkdir -p ./bin
     wget -O ./bin/planetiler.jar https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar
@@ -84,19 +239,13 @@ else
     source "$VENV_DIR/bin/activate"
 fi
 
-REGION_ROOT="$1"
-REGION="$2"
-MEMORY="$3"
-
-#Generate
-if [ "$REGION_ROOT" == "each" ]; then
-    if [ "$REGION" != "each" ]; then
-        echo "Cannot generate 'each' root region for non-each region, exiting..."
-        exit 1
+# Generate
+if [ "$MODE" == "single" ]; then
+    if [ "$PATH_ARG" = "planet" ]; then
+        echo "TODO"
     fi
-    while IFS= read -r REGION_ROOT; do
-        generate_root "$REGION_ROOT" "each" "$MEMORY"
-    done < "defs/regions/planet.txt"
-else
-    generate_root "$REGION_ROOT" "$REGION" "$MEMORY"
+    generate_region "$PATH_ARG" "$MEMORY"
+    exit 0
+elif [[ "$MODE" == "recursive" ]]; then
+    all_path "$PATH_ARG"
 fi

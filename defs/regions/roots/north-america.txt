@@ -1,9 +1,0 @@
-canada
-greenland
-mexico
-us
-us-midwest
-us-northeast
-us-pacific
-us-south
-us-west

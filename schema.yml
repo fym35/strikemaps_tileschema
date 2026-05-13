@@ -2,26 +2,26 @@ schema_name: StrikeMaps Tileschema
 schema_description: A tileschema for OpenStreetMap data developed by the Strike Maps project.
 attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>, Natural Earth, NASA SRTM
 args:
-  area:
-    description: Geofabrik area to download
-    default: monaco
-  osm_url:
-    description: OSM URL to download
-    default: '${ args.area == "planet" ? "aws:latest" : ("geofabrik:" + args.area) }'
+  osm_file:
+    description: Source .osm.pbf file
+    default: ./source.osm.pbf
+  contour_file:
+    description: Contour data geojson
+    default: ./contours.geojson
 sources:
+  osm:
+    type: osm
+    local_path: '${ args.osm_file }'
   ocean:
     type: shapefile
     url: https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip
-  osm:
-    type: osm
-    url: '${ args.osm_url }'
   natural_earth:
     type: geopackage
     url: "https://naciscdn.org/naturalearth/packages/natural_earth_vector.gpkg.zip"
     projection: EPSG:4326
   contour:
     type: geojson
-    local_path: ./data/contours.geojson
+    local_path: '${ args.contour_file }'
   hillshade_json:
     type: geojson
     url: "https://raw.githubusercontent.com/tinius/hillshade-json/refs/heads/master/hillshade.json"
