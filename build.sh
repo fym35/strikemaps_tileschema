@@ -200,6 +200,8 @@ fetch_path() {
 
 all_path() {
     local PATH_ARG="$1"
+    local DEPTH="${2:-0}"
+
     if [ "$PATH_ARG" = "planet" ]; then
         PATH_ARG=""
         SUBS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nsouth-america'
@@ -207,16 +209,18 @@ all_path() {
         SUBS=$(fetch_path "$PATH_ARG")
     fi
 
-    if [ -z "$SUBS" ]; then
+    if [[ -z "$SUBS" ]]; then
         while IFS= read -r REG; do
             generate_region "$PATH_ARG" "$MEMORY"
         done <<< "$SUBS"
+    elif [[ -n "$MAX_DEPTH" &&  "$DEPTH" -ge "$MAX_DEPTH" ]]; then
+        generate_region "$PATH_ARG" "$MEMORY"
     else
         while IFS= read -r REG; do
             if [[ -n "$PATH_ARG" ]]; then
-                all_path "$PATH_ARG/$REG"
+                all_path "$PATH_ARG/$REG" "$((DEPTH + 1))"
             else
-                all_path "$REG"
+                all_path "$REG" "$((DEPTH + 1))"
             fi
         done <<< "$SUBS"
     fi
