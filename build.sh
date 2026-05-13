@@ -2,6 +2,7 @@
 
 # Set defaults
 MEMORY="${MEMORY:-$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / 1024 / 1024 / 2))M}"
+PLANET_PATHS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nsouth-america'
 
 # Fetch args
 while [[ $# -gt 0 ]]; do
@@ -118,6 +119,48 @@ should_skip() {
   return 1
 }
 
+single_planet() {
+    mkdir -p "./data/osm/planet"
+    wget "https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf" -O "./data/osm/planet.osm.pbf"
+
+    mkdir -p "./work/tmp"
+    while IFS= read -r REG; do
+      mkdir -p "./work/poly/"
+      wget "https://download.geofabrik.de/$REG.poly" -O "./work/poly/$REG.poly"
+
+      mkdir -p "./work/contours/$REG"
+      pyhgtmap \
+        --polygon="./work/poly/$PATH_ARG.poly" \
+        --step=100 \
+        --hgtdir=work/hgt \
+        --sources=view1,view3 \
+        --simplifyContoursEpsilon=0.001 \
+        -j16 \
+        --max-nodes-per-tile=0 \
+        --output-prefix="./work/contours/$REG/con"
+
+      mv "./work/contours/$REG"/con* "./work/tmp/contours_new.osm"
+
+      osmium cat "./work/tmp/contours_new.osm" \
+        -o "./work/tmp/contours.osm"
+    done <<< "$PLANET_PATHS"
+    osmium export work/tmp/contours.osm \
+     -o ./data/contours/planet.geojson \
+     --overwrite
+    rm -f "./work/tmp/contours.osm"
+
+    java -Xmx"$MEMORY" \
+      -jar ./bin/planetiler.jar schema.yml \
+      --download \
+      --osm_file="./data/osm/planet.osm.pbf" \
+      --contour_file="./data/contours/planet.geojson" \
+      --output="./out/planet.mbtiles" \
+      --no-simplify \
+      --simplify-tolerance-at-max-zoom=0 \
+      --no-feature-merge \
+      --simplify-tolerance=0
+}
+
 generate_region() {
   local PATH_ARG="$1"
   local MEMORY="$2"
@@ -152,14 +195,14 @@ generate_region() {
   mkdir -p "./work/tmp"
   # max-nodes-per-tile=0 SHOULD generate only one file
   # still very much wonky though
-  mv "work/contours/$PATH_ARG"/con* work/tmp/contours.osm
+  mv "./work/contours/$PATH_ARG"/con* "./work/tmp/contours.osm"
 
   mkdir -p "./data/contours/${PATH_ARG%/*}"
-  osmium export work/tmp/contours.osm \
-    -o data/contours/${PATH_ARG}.geojson \
+  osmium export ./work/tmp/contours.osm \
+    -o ./data/contours/${PATH_ARG}.geojson \
     --overwrite
 
-  rm -f work/tmp/contours.osm
+  rm -f "./work/tmp/contours.osm"
 
   mkdir -p "./out/${PATH_ARG%/*}"
 
@@ -204,7 +247,7 @@ all_path() {
 
     if [ "$PATH_ARG" = "planet" ]; then
         PATH_ARG=""
-        SUBS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nsouth-america'
+        SUBS=$PLANET_PATHS
     else
         SUBS=$(fetch_path "$PATH_ARG")
     fi
@@ -246,7 +289,8 @@ fi
 # Generate
 if [ "$MODE" == "single" ]; then
     if [ "$PATH_ARG" = "planet" ]; then
-        echo "TODO"
+        single_planet
+        exit 0
     fi
     generate_region "$PATH_ARG" "$MEMORY"
     exit 0
