@@ -120,7 +120,6 @@ layers:
           - key: class
             type: match_value
   - id: building
-    min_zoom: 4
     features:
       - source: osm
         geometry: polygon
@@ -183,7 +182,6 @@ layers:
         include_when:
           waterway: [river, stream, tidal_channel, canal, drain, ditch, pressurised, fairway]
   - id: place
-    min_zoom: 6
     features:
       - source: osm
         geometry: point
