@@ -181,7 +181,7 @@ generate_region() {
   mkdir -p "./work/poly/${PATH_ARG%/*}"
   wget "https://download.geofabrik.de/$PATH_ARG.poly" -O "./work/poly/$PATH_ARG.poly"
 
-  mkdir -p "./work/contours/${PATH_ARG%/*}"
+  mkdir -p "./work/contours/${PATH_ARG}"
   pyhgtmap \
     --polygon="./work/poly/$PATH_ARG.poly" \
     --step=100 \
