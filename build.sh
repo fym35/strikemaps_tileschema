@@ -2,7 +2,7 @@
 
 # Set defaults
 MEMORY="${MEMORY:-$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / 1024 / 1024 / 2))M}"
-PLANET_PATHS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nsouth-america'
+PLANET_PATHS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nrussia\nsouth-america'
 
 # Fetch args
 while [[ $# -gt 0 ]]; do
