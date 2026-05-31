@@ -2,7 +2,6 @@
 
 # Set defaults
 MEMORY="${MEMORY:-$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / 1024 / 1024 / 2))M}"
-PLANET_PATHS=$'africa\nantarctica\nasia\naustralia-oceania\ncentral-america\neurope\nnorth-america\nrussia\nsouth-america'
 
 # Fetch args
 while [[ $# -gt 0 ]]; do
@@ -143,7 +142,7 @@ single_planet() {
 
       osmium cat "./work/tmp/contours_new.osm" \
         -o "./work/tmp/contours.osm"
-    done <<< "$PLANET_PATHS"
+    done <<< $(fetch_path "planet")
     osmium export work/tmp/contours.osm \
      -o ./data/contours/planet.geojson \
      --overwrite
@@ -233,12 +232,17 @@ generate_region() {
 
 fetch_path() {
     local PATH_ARG="$1"
-    curl -s "https://download.geofabrik.de/$PATH_ARG/" |
-    grep -oP 'href="\K[^"]+' |
-    grep -vE '^\?C=|/icons/|Parent Directory|^/?$' |
-    sed 's|/$||' |
-    grep ".poly" |
-    sed 's/\.poly$//'
+    curl -s https://download.geofabrik.de/index-v1-nogeom.json | jq -r --arg pid "$PATH_ARG" '
+    .features[]
+    | select(
+        if ($pid == "" or $pid == "planet") then
+            .properties.parent == null
+        else
+            .properties.parent == $pid
+        end
+        )
+    | .properties.id
+    '
 }
 
 all_path() {
@@ -247,10 +251,9 @@ all_path() {
 
     if [ "$PATH_ARG" = "planet" ]; then
         PATH_ARG=""
-        SUBS=$PLANET_PATHS
-    else
-        SUBS=$(fetch_path "$PATH_ARG")
     fi
+
+    SUBS=$(fetch_path "$PATH_ARG")
 
     if [[ -z "$SUBS" ]]; then
         while IFS= read -r REG; do
