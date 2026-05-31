@@ -119,6 +119,10 @@ should_skip() {
 }
 
 single_planet() {
+    if [[ "$TEST" == "1" ]]; then
+        return 0
+    fi
+
     mkdir -p "./data/osm/planet"
     wget "https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf" -O "./data/osm/planet.osm.pbf"
 
