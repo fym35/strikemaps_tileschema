@@ -249,7 +249,9 @@ layers:
               - tertiary_link
           else: false
         - key: name
-          type: get 
+          type: get
+        - key: short_name
+          type: get
         - key: oneway
           type: get
         - key: junction
@@ -264,6 +266,8 @@ layers:
           type: get
         - key: network
           type: get
+        - key: operator
+          type: get
         - key: state
           type: get
         - key: osmc_symbol
@@ -271,6 +275,32 @@ layers:
         - key: tunnel
           type: get
         - key: bridge
+          type: get
+        - key: route
+          type: get
+        - key: route
+          type: get
+        - key: type
+          type: get
+        - key: from
+          type: get
+        - key: to
+          type: get
+        - key: destinations
+          type: get
+        - key: kct_green
+          type: get
+        - key: kct_yellow
+          type: get
+        - key: kct_red
+          type: get
+        - key: kct_blue
+          type: get
+        - key: pilgrimage
+          type: get
+        - key: roundtrip
+          type: get
+        - key: foot
           type: get
   - id: landfeature
     features:
