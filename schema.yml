@@ -125,7 +125,7 @@ layers:
         geometry: polygon
         include_when:
           building: __any__
-          man_made: [bridge, wasterwater_plant, water_works, works]
+          man_made: [bridge, wasterwater_plant, water_works, works, breakwater]
         attributes:
           - key: class
             type: match_value
@@ -169,12 +169,6 @@ layers:
             type: match_value
           - key: name
             type: get
-  - id: waterworks
-    features:
-      - source: osm
-        geometry: polygon
-        include_when:
-          man_made: [breakwater]
   - id: waterway
     features:
       - source: osm
