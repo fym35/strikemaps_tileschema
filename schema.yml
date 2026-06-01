@@ -125,7 +125,7 @@ layers:
         geometry: polygon
         include_when:
           building: __any__
-          man_made: [bridge, wasterwater_plant, water_works, works, breakwater]
+          man_made: [bridge, wasterwater_plant, water_works, works, breakwater, pier]
         attributes:
           - key: class
             type: match_value
@@ -201,7 +201,6 @@ layers:
           leisure: [garden, park, pitch, dog_park, fishing, marina, nature_reserve, playground, stadium, track, playground, sports_centre]
           natural: [fell, grassland, heath, scrub, wood, tundra, bay, beach, blowhole, crevasse, shingle, shoal, bare_rock, hill, sand, scree, tree]
           highway: [service, pedestrian]
-          man_made: [pier]
         attributes:
           - key: class
             type: match_key
