@@ -141,7 +141,7 @@ single_planet() {
         --max-nodes-per-tile=0 \
         --output-prefix="./work/contours/$REG/con"
 
-      mv "./work/contours/$REG"/con* "./data/countours/osm/$REG.osm"
+      mv "./work/contours/$REG"/con* "./data/contours/osm/$REG.osm"
 
       osmium export ./data/contours/osm/$REG.osm \
         -o ./data/contours/geojson/$REG.geojson \
