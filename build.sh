@@ -126,9 +126,8 @@ single_planet() {
     mkdir -p "./data/osm/planet"
     wget "https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf" -O "./data/osm/planet.osm.pbf"
 
-    mkdir -p "./work/tmp"
     while IFS= read -r REG; do
-      mkdir -p "./work/poly/"
+      mkdir -p "./work/poly/europe"
       wget "https://download.geofabrik.de/$REG.poly" -O "./work/poly/$REG.poly"
 
       mkdir -p "./work/contours/$REG"
@@ -142,21 +141,19 @@ single_planet() {
         --max-nodes-per-tile=0 \
         --output-prefix="./work/contours/$REG/con"
 
-      mv "./work/contours/$REG"/con* "./work/tmp/contours_new.osm"
+      mv "./work/contours/$REG"/con* "./data/countours/osm/$REG.osm"
 
-      osmium cat "./work/tmp/contours_new.osm" \
-        -o "./work/tmp/contours.osm"
-    done <<< $(fetch_path "planet")
-    osmium export work/tmp/contours.osm \
-     -o ./data/contours/planet.geojson \
-     --overwrite
-    rm -f "./work/tmp/contours.osm"
+      osmium export ./data/contours/osm/$REG.osm \
+        -o ./data/contours/geojson/$REG.geojson \
+        --overwrite
+    done < <(fetch_path "planet")
+    fetch_path "planet" | awk '{print "./data/contours/geojson/" $0 ".geojson"}' | xargs osmium merge -o ./data/contours/geojson/planet.geojson
 
     java -Xmx"$MEMORY" \
       -jar ./bin/planetiler.jar schema.yml \
       --download \
       --osm_file="./data/osm/planet.osm.pbf" \
-      --contour_file="./data/contours/planet.geojson" \
+      --contour_file="./data/contours/geojson/planet.geojson" \
       --output="./out/planet.mbtiles" \
       --no-simplify \
       --simplify-tolerance-at-max-zoom=0 \
@@ -195,17 +192,15 @@ generate_region() {
     --max-nodes-per-tile=0 \
     --output-prefix="./work/contours/$PATH_ARG/con"
 
-  mkdir -p "./work/tmp"
+  mkdir -p "./data/contours/osm/${PATH_ARG%/*}"
   # max-nodes-per-tile=0 SHOULD generate only one file
   # still very much wonky though
-  mv "./work/contours/$PATH_ARG"/con* "./work/tmp/contours.osm"
+  mv "./work/contours/$PATH_ARG"/con* "./data/contours/osm/$PATH_ARG.osm"
 
-  mkdir -p "./data/contours/${PATH_ARG%/*}"
-  osmium export ./work/tmp/contours.osm \
-    -o ./data/contours/${PATH_ARG}.geojson \
+  mkdir -p "./data/contours/geojson/${PATH_ARG%/*}"
+  osmium export ./data/contours/osm/${PATH_ARG}.osm \
+    -o ./data/contours/geojson/${PATH_ARG}.geojson \
     --overwrite
-
-  rm -f "./work/tmp/contours.osm"
 
   mkdir -p "./out/${PATH_ARG%/*}"
 
@@ -226,7 +221,7 @@ generate_region() {
     -jar ./bin/planetiler.jar schema.yml \
     --download \
     --osm_file="./data/osm/${PATH_ARG}.osm.pbf" \
-    --contour_file="./data/contours/${PATH_ARG}.geojson" \
+    --contour_file="./data/contours/geojson/${PATH_ARG}.geojson" \
     --output="./out/${PATH_ARG}.mbtiles" \
     --no-simplify \
     --simplify-tolerance-at-max-zoom=0 \
