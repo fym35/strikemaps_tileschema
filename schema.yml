@@ -125,7 +125,7 @@ layers:
         geometry: polygon
         include_when:
           building: __any__
-          man_made: [bridge, wasterwater_plant, water_works, works, breakwater, pier]
+          man_made: [bridge, wastewater_plant, water_works, works, breakwater, pier]
         attributes:
           - key: class
             type: match_value
@@ -193,8 +193,8 @@ layers:
       - source: osm
         geometry: polygon
         include_when:
-          landuse: [commercial, construction, education, fairground, industrial, residential, retail, institutional, aquaculture, alloments, farmland, farmyard, animal_keeping, flowerbed, forest, logging, greenhouse_horticulture, meadow, orchard, plant_nursery, vineyard, depot, garages, highway, port, railway, basin, salt_pond, bronwfield, cemetery, grass, greenfield, landfill, military, quarry, recreation_ground, religious, village_green, greenery, winter_sports] 
-          amenity: [college, dancing_school, driving_school, first_aid_school, kindergarten, language_school, library, surf_school, toy_library, research_insitute, training, music_school, school, traffic_park, university, parking, parking_space, clinic, dentist, doctors, hospital, nursing_home, pharmacy, social_facility, veterinary, gambling, courthouse, fire_station, police, prison, townhall, crematorium, dive_centre, funeral_hall, grave_yard, marketplace, monastery, mortuary]
+          landuse: [commercial, construction, education, fairground, industrial, residential, retail, institutional, aquaculture, allotments, farmland, farmyard, animal_keeping, flowerbed, forest, logging, greenhouse_horticulture, meadow, orchard, plant_nursery, vineyard, depot, garages, highway, port, railway, basin, salt_pond, brownfield, cemetery, grass, greenfield, landfill, military, quarry, recreation_ground, religious, village_green, greenery, winter_sports] 
+          amenity: [college, dancing_school, driving_school, first_aid_school, kindergarten, language_school, library, surf_school, toy_library, research_institute, training, music_school, school, traffic_park, university, parking, parking_space, clinic, dentist, doctors, hospital, nursing_home, pharmacy, social_facility, veterinary, gambling, courthouse, fire_station, police, prison, townhall, crematorium, dive_centre, funeral_hall, grave_yard, marketplace, monastery, mortuary]
           waterway: [boatyard]
           military: [danger_area]
           landcover: __any__
@@ -218,7 +218,7 @@ layers:
         geometry: line 
         include_when:
           route: __any__
-          highway: [motorway, trunk, primary, secondary, tertiary, unclassified,residential, motorway_link, trunk_link, primary_link, secondary_link, tertiary_link, living_street, service, pedestrian, track, bus_guideway, escape, raceway, road, busway, footway, bridleway, steps, corridor, path, via_ferrata, cicleway, ladder, platform]
+          highway: [motorway, trunk, primary, secondary, tertiary, unclassified,residential, motorway_link, trunk_link, primary_link, secondary_link, tertiary_link, living_street, service, pedestrian, track, bus_guideway, escape, raceway, road, busway, footway, bridleway, steps, corridor, path, via_ferrata, cycleway, ladder, platform]
           aerialway: [gondola, mixed_lift, chair_lift, drag_lift, t-bar, j-bar, platter, rope_tow, magic_carpet, zip_line, goods]
           footway: [sidewalk, crossing, traffic_island]
           cycleway: [lane, track, share_busway, shared_lane]
@@ -362,6 +362,6 @@ layers:
       - source: osm
         geometry: line
         include_when:
-          attracion: [slide, water_slide, lazy_river]
+          attraction: [slide, water_slide, lazy_river]
           man_made: [pipeline]
-          leisure: [track]          
+          leisure: [track]
