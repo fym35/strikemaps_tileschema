@@ -271,8 +271,6 @@ layers:
           type: get
         - key: route
           type: get
-        - key: route
-          type: get
         - key: type
           type: get
         - key: from
