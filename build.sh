@@ -134,7 +134,7 @@ single_planet() {
     wget "https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf" -O "./data/osm/planet.osm.pbf"
 
     while IFS= read -r REG; do
-      mkdir -p "./work/poly/europe"
+      mkdir -p "./work/poly"
       wget "https://download.geofabrik.de/$REG.poly" -O "./work/poly/$REG.poly"
 
       mkdir -p "./work/contours/$REG"
