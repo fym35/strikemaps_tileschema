@@ -365,3 +365,4 @@ layers:
           attraction: [slide, water_slide, lazy_river]
           man_made: [pipeline]
           leisure: [track]
+          highway: [platform]
