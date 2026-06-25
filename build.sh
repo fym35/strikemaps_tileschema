@@ -107,6 +107,11 @@ fi
 echo "Processing path '$PATH_ARG' in $MODE mode with $MEMORY memory allocated..."
 
 # Define functions
+system_path() {
+  local input="$1"
+  echo "${input//\/\//\/}"
+}
+
 should_skip() {
   local path="$1"
 
@@ -167,61 +172,61 @@ generate_region() {
   local PATH_ARG="$1"
   local MEMORY="$2"
 
-  PATH_ARG="${PATH_ARG%/}"
+  PATH_ARG="${PATH_ARG%//}"
 
   if should_skip "$PATH_ARG"; then
-    echo "Skipping excluded region: $PATH_ARG"
+    echo "Skipping excluded region: $(system_path "${PATH_ARG}")"
     return 0
   fi
 
-  echo "Generating region: $PATH_ARG"
+  echo "Generating region: $(system_path "${PATH_ARG}")"
 
   if [[ "$TEST" == "1" ]]; then
      return 0
   fi
 
-  mkdir -p "./work/poly/${PATH_ARG%/*}"
-  wget "https://download.geofabrik.de/$PATH_ARG.poly" -O "./work/poly/$PATH_ARG.poly"
+  mkdir -p "./work/poly/$(system_path "${PATH_ARG%//*}")"
+  wget "https://download.geofabrik.de/$(system_path "${PATH_ARG}").poly" -O "./work/poly/$(system_path "${PATH_ARG}").poly"
 
-  mkdir -p "./work/contours/${PATH_ARG}"
+  mkdir -p "./work/contours/$(system_path "${PATH_ARG}")"
   pyhgtmap \
-    --polygon="./work/poly/$PATH_ARG.poly" \
+    --polygon="./work/poly/$(system_path "${PATH_ARG}").poly" \
     --step=100 \
     --hgtdir=work/hgt \
     --sources=view1,view3 \
     --simplifyContoursEpsilon=0.001 \
     -j16 \
     --max-nodes-per-tile=0 \
-    --output-prefix="./work/contours/$PATH_ARG/con"
+    --output-prefix="./work/contours/$(system_path "${PATH_ARG}")/con"
 
-  mkdir -p "./data/contours/osm/${PATH_ARG%/*}"
+  mkdir -p "./data/contours/osm/$(system_path "${PATH_ARG%//*}")"
   # max-nodes-per-tile=0 SHOULD generate only one file
   # still very much wonky though
-  mv "./work/contours/$PATH_ARG"/con* "./data/contours/osm/$PATH_ARG.osm"
+  mv "./work/contours/$(system_path "${PATH_ARG}")"/con* "./data/contours/osm/$(system_path "${PATH_ARG}").osm"
 
-  mkdir -p "./data/contours/geojson/${PATH_ARG%/*}"
-  osmium export ./data/contours/osm/${PATH_ARG}.osm \
-    -o ./data/contours/geojson/${PATH_ARG}.geojson \
+  mkdir -p "./data/contours/geojson/$(system_path "${PATH_ARG%//*}")"
+  osmium export ./data/contours/osm/$(system_path "${PATH_ARG}").osm \
+    -o ./data/contours/geojson/$(system_path "${PATH_ARG}").geojson \
     --overwrite
 
-  mkdir -p "./out/${PATH_ARG%/*}"
+  mkdir -p "./out/$(system_path "${PATH_ARG%//*}")"
 
-  mkdir -p "./data/osm/${PATH_ARG%/*}"
+  mkdir -p "./data/osm/$(system_path "${PATH_ARG%//*}")"
   wget "$(
     curl -s https://download.geofabrik.de/index-v1-nogeom.json |
-    jq -r --arg pid "${PATH_ARG##*/}" --arg parent "$(awk -F/ '{print $(NF-1)}' <<< "$PATH_ARG")" '
+    jq -r --arg pid "${PATH_ARG##*//}" --arg parent "$(awk -F/ '{print $(NF-1)}' <<< "$PATH_ARG")" '
       .. | objects
       | select(.id? == $pid and .parent? == $parent)
       | .urls.pbf
      '
-  )" -O "./data/osm/${PATH_ARG}.osm.pbf"
+  )" -O "./data/osm/$(system_path "${PATH_ARG}").osm.pbf"
 
   java -Xmx"$MEMORY" \
     -jar ./bin/planetiler.jar schema.yml \
     --download \
-    --osm_file="./data/osm/${PATH_ARG}.osm.pbf" \
-    --contour_file="./data/contours/geojson/${PATH_ARG}.geojson" \
-    --output="./out/${PATH_ARG}.mbtiles" \
+    --osm_file="./data/osm/$(system_path "${PATH_ARG}").osm.pbf" \
+    --contour_file="./data/contours/geojson/$(system_path "${PATH_ARG}").geojson" \
+    --output="./out/$(system_path "${PATH_ARG}").mbtiles" \
     --no-simplify \
     --simplify-tolerance-at-max-zoom=0 \
     --no-feature-merge \
@@ -230,7 +235,7 @@ generate_region() {
 
 fetch_path() {
     local PATH_ARG="$1"
-    curl -s https://download.geofabrik.de/index-v1-nogeom.json | jq -r --arg pid "${PATH_ARG##*/}" '
+    curl -s https://download.geofabrik.de/index-v1-nogeom.json | jq -r --arg pid "${PATH_ARG##*//}" '
     .features[]
     | select(
         if ($pid == "" or $pid == "planet") then
@@ -262,7 +267,7 @@ all_path() {
     else
         while IFS= read -r REG; do
             if [[ -n "$PATH_ARG" ]]; then
-                all_path "$PATH_ARG/$REG" "$((DEPTH + 1))"
+                all_path "$PATH_ARG//$REG" "$((DEPTH + 1))"
             else
                 all_path "$REG" "$((DEPTH + 1))"
             fi
@@ -293,8 +298,8 @@ if [ "$MODE" == "single" ]; then
         single_planet
         exit 0
     fi
-    generate_region "$PATH_ARG" "$MEMORY"
+    generate_region "${PATH_ARG//\//\/\/}" "$MEMORY"
     exit 0
 elif [[ "$MODE" == "recursive" ]]; then
-    all_path "$PATH_ARG"
+    all_path "${PATH_ARG//\//\/\/}"
 fi
