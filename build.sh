@@ -231,7 +231,7 @@ generate_region() {
 
 fetch_path() {
     local PATH_ARG="$1"
-    curl -s https://download.geofabrik.de/index-v1-nogeom.json | jq -r --arg pid "$PATH_ARG" '
+    curl -s https://download.geofabrik.de/index-v1-nogeom.json | jq -r --arg pid "${PATH_ARG##*/}" '
     .features[]
     | select(
         if ($pid == "" or $pid == "planet") then
