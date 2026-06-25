@@ -205,17 +205,14 @@ generate_region() {
   mkdir -p "./out/${PATH_ARG%/*}"
 
   mkdir -p "./data/osm/${PATH_ARG%/*}"
-  wget "https://download.geofabrik.de/${PATH_ARG%/*}/$(
-        curl -s "https://download.geofabrik.de/${PATH_ARG%/*}/" |
-        grep -oP 'href="\K[^"]+' |
-        grep -vE '^\?C=|/icons/|Parent Directory|^/?$' |
-        sed 's|/$||' |
-        grep '\.osm\.pbf$' |
-        grep -v '\.md5$' |
-        grep "${PATH_ARG##*/}" |
-        sort |
-        tail -n 1
-    )" -O "./data/osm/${PATH_ARG}.osm.pbf"
+  wget "$(
+    curl -s https://download.geofabrik.de/index-v1-nogeom.json |
+    jq -r --arg pid "${PATH_ARG##*/}" --arg parent "$(awk -F/ '{print $(NF-1)}' <<< "$PATH_ARG")" '
+      .. | objects
+      | select(.id? == $pid and .parent? == $parent)
+      | .urls.pbf
+     '
+  )" -O "./data/osm/${PATH_ARG}.osm.pbf"
 
   java -Xmx"$MEMORY" \
     -jar ./bin/planetiler.jar schema.yml \
