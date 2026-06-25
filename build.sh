@@ -4,6 +4,8 @@
 MEMORY="${MEMORY:-$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / 1024 / 1024 / 2))M}"
 
 # Fetch args
+PATH_ARG=""
+MODE=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -m|--memory)
