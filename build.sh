@@ -174,7 +174,7 @@ generate_region() {
 
   PATH_ARG="${PATH_ARG%//}"
 
-  if should_skip "$PATH_ARG"; then
+  if should_skip "$(system_path "${PATH_ARG}")"; then
     echo "Skipping excluded region: $(system_path "${PATH_ARG}")"
     return 0
   fi
