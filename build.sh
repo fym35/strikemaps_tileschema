@@ -214,7 +214,7 @@ generate_region() {
   mkdir -p "./data/osm/$(system_path "${PATH_ARG%//*}")"
   wget "$(
     curl -s https://download.geofabrik.de/index-v1-nogeom.json |
-    jq -r --arg pid "${PATH_ARG##*//}" --arg parent "$(awk -F/ '{print $(NF-1)}' <<< "$PATH_ARG")" '
+    jq -r --arg pid "${PATH_ARG##*//}" --arg parent "$(awk -F/ '{print $(NF-1)}' <<< "$(system_path "${PATH_ARG}")")" '
       .. | objects
       | select(.id? == $pid and .parent? == $parent)
       | .urls.pbf
