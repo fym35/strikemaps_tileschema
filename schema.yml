@@ -193,14 +193,14 @@ layers:
       - source: osm
         geometry: polygon
         include_when:
-          landuse: [commercial, construction, education, fairground, industrial, residential, retail, institutional, aquaculture, allotments, farmland, farmyard, animal_keeping, flowerbed, forest, logging, greenhouse_horticulture, meadow, orchard, plant_nursery, vineyard, depot, garages, highway, port, railway, basin, salt_pond, brownfield, cemetery, grass, greenfield, landfill, military, quarry, recreation_ground, religious, village_green, greenery, winter_sports] 
+          landuse: [commercial, construction, education, fairground, industrial, residential, retail, institutional, aquaculture, allotments, farmland, farmyard, animal_keeping, flowerbed, forest, logging, greenhouse_horticulture, meadow, orchard, plant_nursery, vineyard, depot, garages, highway, port, railway, basin, salt_pond, brownfield, cemetery, grass, greenfield, landfill, military, quarry, recreation_ground, religious, village_green, greenery, winter_sports]
           amenity: [college, dancing_school, driving_school, first_aid_school, kindergarten, language_school, library, surf_school, toy_library, research_institute, training, music_school, school, traffic_park, university, parking, parking_space, clinic, dentist, doctors, hospital, nursing_home, pharmacy, social_facility, veterinary, gambling, courthouse, fire_station, police, prison, townhall, crematorium, dive_centre, funeral_hall, grave_yard, marketplace, monastery, mortuary]
           waterway: [boatyard]
           military: [danger_area]
           landcover: __any__
           leisure: [garden, park, pitch, dog_park, fishing, marina, nature_reserve, playground, stadium, track, playground, sports_centre]
           natural: [fell, grassland, heath, scrub, wood, tundra, bay, beach, blowhole, crevasse, shingle, shoal, bare_rock, hill, sand, scree, tree]
-          highway: [service, pedestrian]
+          highway: [rest_area, service, pedestrian]
         attributes:
           - key: class
             type: match_key
@@ -215,7 +215,7 @@ layers:
   - id: transportation
     features:
       - source: osm
-        geometry: line 
+        geometry: line
         include_when:
           route: __any__
           highway: [motorway, trunk, primary, secondary, tertiary, unclassified,residential, motorway_link, trunk_link, primary_link, secondary_link, tertiary_link, living_street, service, pedestrian, track, bus_guideway, escape, raceway, road, busway, footway, bridleway, steps, corridor, path, via_ferrata, cycleway, ladder, platform]
@@ -225,6 +225,10 @@ layers:
           aeroway: [runway, stopway, taxiway]
           railway: [abandoned, construction, disused, funicular, light_rail, miniature, monorail, narrow_gauge, rail, subway, tram]
           man_made: [goods_conveyor]
+      - source: osm
+        geometry: point
+        include_when:
+            highway: [motorway_junction, passing_place, mini_roundabout, speed_camera, speed_display, toll_ganty, turning_circle, turning_loop]
         attributes:
         - key: class
           type: match_key
